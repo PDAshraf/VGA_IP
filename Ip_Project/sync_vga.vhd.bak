@@ -1,0 +1,111 @@
+
+library IEEE;
+use IEEE.std_logic_1164.ALL;
+use IEEE.numeric_std.ALL;
+
+entity sync_vga is
+    port (
+        clock_25     : in    std_logic;
+        reset_n      : in    std_logic;
+        vga_ram_q    : in    std_logic_vector(2 downto 0);
+        vga_ram_addr : out   std_logic_vector(16 downto 0);
+        vga_blank_n  : out   std_logic;
+
+        vga_hs : out   std_logic;
+        vga_vs : out   std_logic;
+        vga_r  : out   std_logic_vector(3 downto 0);
+        vga_g  : out   std_logic_vector(3 downto 0);
+        vga_b  : out   std_logic_vector(3 downto 0)
+    );
+end entity sync_vga;
+
+architecture rtl of sync_vga is
+
+    type t_hv is record
+        H : integer range 0 to 799;
+        V : integer range 0 to 524;
+    end record;
+
+   signal x_counter : unsigned(9 downto 0);
+	signal y_counter : unsigned(9 downto 0);
+
+begin
+
+    counter_process : process (clock_25, reset_n) is
+    begin
+      if resetn = '0' then
+			x_counter <= (others => '0');
+			y_counter <= (others => '0');
+		elsif rising_edge(clk) then
+			------------ x_counter ------------
+			if x_counter >= 799 then
+				x_counter <= (others => '0');
+			else
+				x_counter <= x_counter + 1;
+			end if;
+			------------ x_counter ------------
+
+			------------ y_counter ------------
+			if x_counter = 707 then 
+				if y_counter = 525 then 
+					y_counter <= (others => '0');
+				else
+					y_counter <= y_counter + 1; 
+				end if;
+			end if;
+			------------ y_counter ------------
+		end if;
+	end process;
+
+    end process proc_counters;
+
+    -- Since the memory is registered
+    -- we use as registered counter for
+    -- sync and a unregistred for memory access
+    -- to get a correct index
+    proc_counter_reg : process (clock_25, reset_n) is
+    begin
+
+        if (reset_n = '0') then
+            counter_reg.V <= 0;
+            counter_reg.H <= 0;
+        elsif (rising_edge(clock_25)) then
+            counter_reg <= counter;
+        end if;
+
+    end process proc_counter_reg;
+
+    --------------------
+    --  Sync signals  --
+    --------------------
+
+    vga_hs <= '0' when counter_reg.H > 659 and counter_reg.H < 756 else
+              '1';
+    vga_vs <= '0' when counter_reg.V = 494 else
+              '1';
+
+    vga_blank_n <= '1' when ((counter_reg.H < 640) and (counter_reg.V  < 480)) else
+                   '0';
+
+    -----------
+    --  RGB  --
+    -----------
+
+    -- Need to clamp this value for simulation
+    vga_ram_addr <= (std_logic_vector(to_unsigned(counter.V / 2 * 320 + counter.H / 2, vga_ram_addr'length)))
+                    when ((counter.H < 640) and (counter.V  < 480))
+                    else (others => '0');
+
+    vga_r <= (others => (vga_ram_q(2)))
+             when (vga_blank_n = '1')
+             else (others => '0');
+
+    vga_g <= (others => (vga_ram_q(1)))
+             when (vga_blank_n = '1')
+             else (others => '0');
+
+    vga_b <= (others => (vga_ram_q(0)))
+             when (vga_blank_n = '1')
+             else (others => '0');
+
+end architecture rtl;

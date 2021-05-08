@@ -1,0 +1,16 @@
+Analysis & Synthesis Status : Successful - Sun May 02 01:46:25 2021
+Quartus Prime Version : 18.1.0 Build 625 09/12/2018 SJ Lite Edition
+Revision Name : VGA_IP
+Top-level Entity Name : VGA_IP
+Family : MAX 10
+Total logic elements : 140
+    Total combinational functions : 137
+    Dedicated logic registers : 28
+Total registers : 28
+Total pins : 101
+Total virtual pins : 0
+Total memory bits : 230,400
+Embedded Multiplier 9-bit elements : 0
+Total PLLs : 0
+UFM blocks : 0
+ADC blocks : 0
